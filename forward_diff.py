@@ -119,7 +119,8 @@ def forward_diff(diff_func_id : str,
 
         def mutate_const_int(self, node):
             # HW1: TODO
-            return super().mutate_const_int(node)
+            # return super().mutate_const_int(node)
+            return node, loma_ir.ConstInt(0)
 
         def mutate_var(self, node):
             # HW1: TODO
@@ -143,6 +144,7 @@ def forward_diff(diff_func_id : str,
         def mutate_add(self, node):
             # HW1: TODO
             print("add")
+            print(node.left)
             left_val, left_dval = self.mutate_expr(node.left)
             right_val, right_dval = self.mutate_expr(node.right)
             return loma_ir.BinaryOp(
@@ -369,6 +371,15 @@ def forward_diff(diff_func_id : str,
                             x_val
                         )
                 return val, dval
+            elif id == 'int2float':
+                # val = 
+                print(x_val)
+                exit(0)
+                dval = loma_ir.ConstFloat(0.0)
+                return val, dval
+            else:
+                print(id, "NotImplemented")
+                exit(0)
             # return super().mutate_call(node)
 
     return FwdDiffMutator().mutate_function_def(func)
