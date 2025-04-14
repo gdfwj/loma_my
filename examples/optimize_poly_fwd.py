@@ -54,3 +54,7 @@ plt.colorbar(im)
 ax.plot(traj_x, traj_y, color='red')
 
 plt.show()
+
+
+
+
