@@ -228,14 +228,22 @@ def reverse_diff(diff_func_id : str,
             # HW2: TODO
             # return super().mutate_function_def(node)
             new_args = []
+            self.var_to_diff = {}
             for arg in node.args:
                 if arg.i == loma_ir.In():
                     new_args.append(arg)
-                    new_args.append(loma_ir.Arg('_dx', arg.t, loma_ir.Out()))
+                    diff_name = '_d' + arg.id + random_id_generator()
+                    new_args.append(loma_ir.Arg(diff_name, arg.t, loma_ir.Out()))
+                    self.var_to_diff[arg.id] = diff_name
                 if node.ret_type is not None:
-                    new_args.append(loma_ir.Arg('_dret', node.ret_type, loma_ir.In()))
-            new_body = [self.mutate_stmt(stmt) for stmt in node.body]
-            return loma_ir.FunctionDef(diff_func_id, new_args, new_body, node.is_simd, None)
+                    diff_name = '_dret'
+                    new_args.append(loma_ir.Arg(diff_name, node.ret_type, loma_ir.In()))
+            new_body = []
+            for stmt in reversed(node.body):
+                new_stmt = self.mutate_stmt(stmt)
+                if new_stmt is not None:
+                    new_body.append(new_stmt)
+            return loma_ir.FunctionDef(diff_func_id, new_args, irmutator.flatten(new_body), node.is_simd, None)
             # print(new_args)
             # exit(0)
             # new_body = [self.mutate_stmt(stmt) for stmt in node.body]
@@ -245,9 +253,9 @@ def reverse_diff(diff_func_id : str,
 
         def mutate_return(self, node):
             # HW2: TODO
+            self.adj = loma_ir.Var('_dret')
+            return self.mutate_expr(node.val)
             # return super().mutate_return(node)
-            return loma_ir.Return(self.mutate_expr(node.val))
-
 
         def mutate_declare(self, node):
             # HW2: TODO
@@ -271,7 +279,9 @@ def reverse_diff(diff_func_id : str,
 
         def mutate_const_float(self, node):
             # HW2: TODO
-            return super().mutate_const_float(node)
+            # return super().mutate_const_float(node)
+            # print("in const float")
+            return None
 
         def mutate_const_int(self, node):
             # HW2: TODO
@@ -280,7 +290,14 @@ def reverse_diff(diff_func_id : str,
         def mutate_var(self, node):
             # HW2: TODO
             # return super().mutate_var(node)
-
+            new_stmt = [loma_ir.Assign(\
+                loma_ir.Var(self.var_to_diff[node.id]), 
+                loma_ir.BinaryOp(
+                    loma_ir.Add(), loma_ir.Var(self.var_to_diff[node.id]), self.adj
+                )
+            )]
+            return new_stmt
+            
 
         def mutate_array_access(self, node):
             # HW2: TODO

@@ -26,14 +26,14 @@ class Homework2Test(unittest.TestCase):
         lib.d_identity(1.23, ctypes.byref(_dx), 4.56)
         assert abs(_dx.value - 4.56) < epsilon
 
-    # def test_constant(self):
-    #     with open('loma_code/constant.py') as f:
-    #         structs, lib = compiler.compile(f.read(),
-    #                                         target = 'c',
-    #                                         output_filename = '_code/constant')
-    #     _dx = ctypes.c_float(0.0)
-    #     lib.d_constant(1.23, ctypes.byref(_dx), 4.56)
-    #     assert abs(_dx.value - 0) < epsilon
+    def test_constant(self):
+        with open('loma_code/constant.py') as f:
+            structs, lib = compiler.compile(f.read(),
+                                            target = 'c',
+                                            output_filename = '_code/constant')
+        _dx = ctypes.c_float(0.0)
+        lib.d_constant(1.23, ctypes.byref(_dx), 4.56)
+        assert abs(_dx.value - 0) < epsilon
 
     # def test_plus(self):
     #     with open('loma_code/plus.py') as f:
