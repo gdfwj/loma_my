@@ -141,34 +141,34 @@ class Homework3Test(unittest.TestCase):
     #     # dout = dx * cos(2 * x * x) * 4 * x 
     #     assert abs(out.dval - (x.dval * math.cos(2 * x.val * x.val) * 4 * x.val)) < epsilon
 
-    def test_call_stmt_fwd(self):
-        with open('loma_code/call_stmt_fwd.py') as f:
-            structs, lib = compiler.compile(f.read(),
-                                            target = 'c',
-                                            output_filename = '_code/call_stmt_fwd')
-        _dfloat = structs['_dfloat']
-        x = _dfloat(0.67, 0.4)
-        z = lib.fwd_call_stmt(x)
-        # z = 2 * (x * x + x)
-        # dout = 2 * dx * (2 * x + 1)
-        assert abs(z.dval - (2 * x.dval * (2 * x.val + 1))) < epsilon
-
-    # def test_func_call_rev(self):
-    #     with open('loma_code/func_call_rev.py') as f:
+    # def test_call_stmt_fwd(self):
+    #     with open('loma_code/call_stmt_fwd.py') as f:
     #         structs, lib = compiler.compile(f.read(),
     #                                         target = 'c',
-    #                                         output_filename = '_code/func_call_rev')
-    #     x = 0.67
-    #     _dx = ctypes.c_float(0)
-    #     y = 0.5
-    #     _dy = ctypes.c_float(0)
-    #     dout = 0.3
-    #     z = lib.rev_func_call(x, ctypes.byref(_dx), y, ctypes.byref(_dy), dout)
-    #     # z = 2 * (x * x * y + y * y)
-    #     # dx = 4 * x * y * dout
-    #     # dy = 2 * x^2 * dout + 2 * y * dout
-    #     assert abs(_dx.value - (4 * x * y * dout)) < epsilon and \
-    #         abs(_dy.value - dout * (2 * x * x + 2 * y))
+    #                                         output_filename = '_code/call_stmt_fwd')
+    #     _dfloat = structs['_dfloat']
+    #     x = _dfloat(0.67, 0.4)
+    #     z = lib.fwd_call_stmt(x)
+    #     # z = 2 * (x * x + x)
+    #     # dout = 2 * dx * (2 * x + 1)
+    #     assert abs(z.dval - (2 * x.dval * (2 * x.val + 1))) < epsilon
+
+    def test_func_call_rev(self):
+        with open('loma_code/func_call_rev.py') as f:
+            structs, lib = compiler.compile(f.read(),
+                                            target = 'c',
+                                            output_filename = '_code/func_call_rev')
+        x = 0.67
+        _dx = ctypes.c_float(0)
+        y = 0.5
+        _dy = ctypes.c_float(0)
+        dout = 0.3
+        z = lib.rev_func_call(x, ctypes.byref(_dx), y, ctypes.byref(_dy), dout)
+        # z = 2 * (x * x * y + y * y)
+        # dx = 4 * x * y * dout
+        # dy = 2 * x^2 * dout + 2 * y * dout
+        assert abs(_dx.value - (4 * x * y * dout)) < epsilon and \
+            abs(_dy.value - dout * (2 * x * x + 2 * y))
 
     # def test_func_call_rev2(self):
     #     with open('loma_code/func_call_rev2.py') as f:

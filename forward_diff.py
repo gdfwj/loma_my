@@ -460,23 +460,63 @@ def forward_diff(diff_func_id : str,
                     return ret, None
                 case _:
                     # apply mutation to the function
+                    # node = node.call
                     if node.id in func_to_fwd:
                         fwd_func = func_to_fwd[node.id]
-                        args = []
-                        for arg in new_args:
-                            val, dval = arg
-                            args.append(loma_ir.Call("make__dfloat",
-                                [val, dval], lineno = node.lineno))
-                        # print(args)
-                        return loma_ir.StructAccess(loma_ir.Call(fwd_func, args,
+                        new_args = []
+                        call_func = funcs[node.id]
+                        # new_args = [self.mutate_expr(arg) for arg in node.args]
+                        for arg, real_arg in zip(node.args, call_func.args):
+                            if real_arg.i == loma_ir.In():
+                                val, dval = self.mutate_expr(arg)
+                                new_args.append(loma_ir.Call("make__dfloat",
+                                    [val, dval], lineno = node.lineno))
+                            else:
+                                new_args.append(arg)
+                        return loma_ir.StructAccess(loma_ir.Call(fwd_func, new_args,
                             lineno = node.lineno,
                             t = node.t), member_id="val"), \
-                                loma_ir.StructAccess(loma_ir.Call(fwd_func, args,
+                                loma_ir.StructAccess(loma_ir.Call(fwd_func, new_args,
                             lineno = node.lineno,
                             t = node.t), member_id="dval")
+                    # if node.id in func_to_fwd:
+                    #     fwd_func = func_to_fwd[node.id]
+                    #     args = []
+                    #     for arg in new_args:
+                    #         val, dval = arg
+                    #         args.append(loma_ir.Call("make__dfloat",
+                    #             [val, dval], lineno = node.lineno))
+                    #     # print(args)
+                    #     return loma_ir.StructAccess(loma_ir.Call(fwd_func, args,
+                    #         lineno = node.lineno,
+                    #         t = node.t), member_id="val"), \
+                    #             loma_ir.StructAccess(loma_ir.Call(fwd_func, args,
+                    #         lineno = node.lineno,
+                    #         t = node.t), member_id="dval")
+                    # else:
+                    #     raise NotImplementedError(\
+                    #         'Function {} not implemented'.format(node.id))
+        
+        def mutate_call_stmt(self, node):
+            node = node.call
+            if node.id in func_to_fwd:
+                fwd_func = func_to_fwd[node.id]
+                new_args = []
+                call_func = funcs[node.id]
+                # new_args = [self.mutate_expr(arg) for arg in node.args]
+                for arg, real_arg in zip(node.args, call_func.args):
+                    if real_arg.i == loma_ir.In():
+                        val, dval = self.mutate_expr(arg)
+                        new_args.append(loma_ir.Call("make__dfloat",
+                            [val, dval], lineno = node.lineno))
                     else:
-                        raise NotImplementedError(\
-                            'Function {} not implemented'.format(node.id))
+                        new_args.append(arg)
+            return loma_ir.CallStmt(loma_ir.Call(fwd_func, new_args,
+                            lineno = node.lineno,
+                            t = node.t))
+            # return loma_ir.CallStmt(\
+            #     self.mutate_expr(node.call),
+            #     lineno = node.lineno)
 
         def mutate_less(self, node):
             return loma_ir.BinaryOp(\
