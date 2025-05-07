@@ -49,7 +49,7 @@ def forward_diff(diff_func_id : str,
     # Apply the differentiation.
     class FwdDiffMutator(irmutator.IRMutator):
         def mutate_function_def(self, node):
-            print(node)
+            # print(node)
             self.ret_type = node.ret_type
             new_args = [\
                 loma_ir.Arg(arg.id, autodiff.type_to_diff_type(diff_structs, arg.t), arg.i) \
@@ -296,7 +296,9 @@ def forward_diff(diff_func_id : str,
             return val, dval
 
         def mutate_call(self, node):
+            # print("mutate_call")
             new_args = [self.mutate_expr(arg) for arg in node.args]
+            # print(new_args)
             match node.id:
                 case 'sin':
                     assert len(new_args) == 1
@@ -460,12 +462,18 @@ def forward_diff(diff_func_id : str,
                     # apply mutation to the function
                     if node.id in func_to_fwd:
                         fwd_func = func_to_fwd[node.id]
-                        fwd_func_def = funcs[fwd_func]
-                        fwd_func_def = self.mutate_function_def(fwd_func_def)
-                        new_args = [self.mutate_expr(arg) for arg in node.args]
-                        return loma_ir.Call(fwd_func, new_args,
+                        args = []
+                        for arg in new_args:
+                            val, dval = arg
+                            args.append(loma_ir.Call("make__dfloat",
+                                [val, dval], lineno = node.lineno))
+                        # print(args)
+                        return loma_ir.StructAccess(loma_ir.Call(fwd_func, args,
                             lineno = node.lineno,
-                            t = node.t), None
+                            t = node.t), member_id="val"), \
+                                loma_ir.StructAccess(loma_ir.Call(fwd_func, args,
+                            lineno = node.lineno,
+                            t = node.t), member_id="dval")
                     else:
                         raise NotImplementedError(\
                             'Function {} not implemented'.format(node.id))

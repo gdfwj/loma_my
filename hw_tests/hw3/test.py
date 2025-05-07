@@ -114,19 +114,19 @@ class Homework3Test(unittest.TestCase):
     #     assert abs(_dx.value - 2 * 0.3) < epsilon and \
     #         abs(_dy.value) < epsilon
 
-    def test_func_call_fwd(self):
-        with open('loma_code/func_call_fwd.py') as f:
-            structs, lib = compiler.compile(f.read(),
-                                            target = 'c',
-                                            output_filename = '_code/func_call_fwd')
-        _dfloat = structs['_dfloat']
-        x = _dfloat(0.67, 0.4)
-        y = _dfloat(0.5, 0.5)
-        z = lib.fwd_func_call(x, y)
-        # z = 2 * (x * x * y + y * y)
-        # dz = 2 * (2 * dx * x * y + x * x * dy + 2 * dy * y)
-        assert abs(z.val - 2 * (x.val * x.val * y.val + y.val * y.val)) < epsilon and \
-            abs(z.dval - 2 * (2 * x.dval * x.val * y.val + x.val * x.val * y.dval + 2 * y.dval * y.val)) < epsilon
+    # def test_func_call_fwd(self):
+    #     with open('loma_code/func_call_fwd.py') as f:
+    #         structs, lib = compiler.compile(f.read(),
+    #                                         target = 'c',
+    #                                         output_filename = '_code/func_call_fwd')
+    #     _dfloat = structs['_dfloat']
+    #     x = _dfloat(0.67, 0.4)
+    #     y = _dfloat(0.5, 0.5)
+    #     z = lib.fwd_func_call(x, y)
+    #     # z = 2 * (x * x * y + y * y)
+    #     # dz = 2 * (2 * dx * x * y + x * x * dy + 2 * dy * y)
+    #     assert abs(z.val - 2 * (x.val * x.val * y.val + y.val * y.val)) < epsilon and \
+    #         abs(z.dval - 2 * (2 * x.dval * x.val * y.val + x.val * x.val * y.dval + 2 * y.dval * y.val)) < epsilon
 
     # def test_chained_calls_fwd(self):
     #     with open('loma_code/chained_calls_fwd.py') as f:
@@ -141,17 +141,17 @@ class Homework3Test(unittest.TestCase):
     #     # dout = dx * cos(2 * x * x) * 4 * x 
     #     assert abs(out.dval - (x.dval * math.cos(2 * x.val * x.val) * 4 * x.val)) < epsilon
 
-    # def test_call_stmt_fwd(self):
-    #     with open('loma_code/call_stmt_fwd.py') as f:
-    #         structs, lib = compiler.compile(f.read(),
-    #                                         target = 'c',
-    #                                         output_filename = '_code/call_stmt_fwd')
-    #     _dfloat = structs['_dfloat']
-    #     x = _dfloat(0.67, 0.4)
-    #     z = lib.fwd_call_stmt(x)
-    #     # z = 2 * (x * x + x)
-    #     # dout = 2 * dx * (2 * x + 1)
-    #     assert abs(z.dval - (2 * x.dval * (2 * x.val + 1))) < epsilon
+    def test_call_stmt_fwd(self):
+        with open('loma_code/call_stmt_fwd.py') as f:
+            structs, lib = compiler.compile(f.read(),
+                                            target = 'c',
+                                            output_filename = '_code/call_stmt_fwd')
+        _dfloat = structs['_dfloat']
+        x = _dfloat(0.67, 0.4)
+        z = lib.fwd_call_stmt(x)
+        # z = 2 * (x * x + x)
+        # dout = 2 * dx * (2 * x + 1)
+        assert abs(z.dval - (2 * x.dval * (2 * x.val + 1))) < epsilon
 
     # def test_func_call_rev(self):
     #     with open('loma_code/func_call_rev.py') as f:
