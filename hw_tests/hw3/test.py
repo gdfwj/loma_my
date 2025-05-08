@@ -59,29 +59,29 @@ class Homework3Test(unittest.TestCase):
     #     assert abs(_dx.value - 2 * 0.3) < epsilon and \
     #         abs(_dy.value) < epsilon
 
-    # def test_ifelse_side_effects_rev(self):
-    #     with open('loma_code/ifelse_side_effects_rev.py') as f:
-    #         structs, lib = compiler.compile(f.read(),
-    #                                         target = 'c',
-    #                                         output_filename = '_code/ifelse_side_effects_rev')
+    def test_ifelse_side_effects_rev(self):
+        with open('loma_code/ifelse_side_effects_rev.py') as f:
+            structs, lib = compiler.compile(f.read(),
+                                            target = 'c',
+                                            output_filename = '_code/ifelse_side_effects_rev')
         
-    #     x = 1.23
-    #     _dx = ctypes.c_float(0)
-    #     y = 1.0
-    #     _dy = ctypes.c_float(0)
-    #     lib.rev_ifelse_side_effects(x, _dx, y, _dy, 0.3)
+        x = 1.23
+        _dx = ctypes.c_float(0)
+        y = 1.0
+        _dy = ctypes.c_float(0)
+        lib.rev_ifelse_side_effects(x, _dx, y, _dy, 0.3)
 
-    #     assert abs(_dx.value - 0.3 * math.cos(5.0 * x) * 5) < epsilon and \
-    #         abs(_dy.value) < epsilon
+        assert abs(_dx.value - 0.3 * math.cos(5.0 * x) * 5) < epsilon and \
+            abs(_dy.value) < epsilon
 
-    #     # test both branches
-    #     x = 1.23
-    #     _dx = ctypes.c_float(0)
-    #     y = -1.0
-    #     _dy = ctypes.c_float(0)
-    #     lib.rev_ifelse_side_effects(x, _dx, y, _dy, 0.3)
-    #     assert abs(_dx.value - 2 * 0.3) < epsilon and \
-    #         abs(_dy.value) < epsilon
+        # test both branches
+        x = 1.23
+        _dx = ctypes.c_float(0)
+        y = -1.0
+        _dy = ctypes.c_float(0)
+        lib.rev_ifelse_side_effects(x, _dx, y, _dy, 0.3)
+        assert abs(_dx.value - 2 * 0.3) < epsilon and \
+            abs(_dy.value) < epsilon
 
     # def test_nested_ifelse_rev(self):
     #     with open('loma_code/nested_ifelse_rev.py') as f:
@@ -153,22 +153,22 @@ class Homework3Test(unittest.TestCase):
     #     # dout = 2 * dx * (2 * x + 1)
     #     assert abs(z.dval - (2 * x.dval * (2 * x.val + 1))) < epsilon
 
-    def test_func_call_rev(self):
-        with open('loma_code/func_call_rev.py') as f:
-            structs, lib = compiler.compile(f.read(),
-                                            target = 'c',
-                                            output_filename = '_code/func_call_rev')
-        x = 0.67
-        _dx = ctypes.c_float(0)
-        y = 0.5
-        _dy = ctypes.c_float(0)
-        dout = 0.3
-        z = lib.rev_func_call(x, ctypes.byref(_dx), y, ctypes.byref(_dy), dout)
-        # z = 2 * (x * x * y + y * y)
-        # dx = 4 * x * y * dout
-        # dy = 2 * x^2 * dout + 2 * y * dout
-        assert abs(_dx.value - (4 * x * y * dout)) < epsilon and \
-            abs(_dy.value - dout * (2 * x * x + 2 * y))
+    # def test_func_call_rev(self):
+    #     with open('loma_code/func_call_rev.py') as f:
+    #         structs, lib = compiler.compile(f.read(),
+    #                                         target = 'c',
+    #                                         output_filename = '_code/func_call_rev')
+    #     x = 0.67
+    #     _dx = ctypes.c_float(0)
+    #     y = 0.5
+    #     _dy = ctypes.c_float(0)
+    #     dout = 0.3
+    #     z = lib.rev_func_call(x, ctypes.byref(_dx), y, ctypes.byref(_dy), dout)
+    #     # z = 2 * (x * x * y + y * y)
+    #     # dx = 4 * x * y * dout
+    #     # dy = 2 * x^2 * dout + 2 * y * dout
+    #     assert abs(_dx.value - (4 * x * y * dout)) < epsilon and \
+    #         abs(_dy.value - dout * (2 * x * x + 2 * y))
 
     # def test_func_call_rev2(self):
     #     with open('loma_code/func_call_rev2.py') as f:

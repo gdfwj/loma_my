@@ -97,6 +97,7 @@ def reverse_diff(diff_func_id : str,
                             stmts += assign_zero(target_m)
                 return stmts
             case _:
+                return []
                 assert False
 
     def accum_deriv(target, deriv, overwrite):
@@ -284,6 +285,8 @@ def reverse_diff(diff_func_id : str,
                 self.mutate_expr(node.val),
                 lineno = node.lineno)
             # backup
+            if isinstance(node.val.t, loma_ir.Array):
+                return [assign_primal]
             t_str = type_to_string(node.val.t)
             if t_str in self.type_to_stack_and_ptr_names:
                 stack_name, stack_ptr_name = self.type_to_stack_and_ptr_names[t_str]
@@ -311,15 +314,73 @@ def reverse_diff(diff_func_id : str,
             else:
                 self.type_cache_size[node.val.t] = 1
             return [cache_primal, stack_advance, assign_primal]
+        
+        def mutate_call_stmt(self, node):
+            # y = f(x0, x1, ..., y)
+            # we will use a temporary array _t to hold variable y for later use:
+            # _t[stack_pos++] = y
+            # y = f(x0, x1, ..., y)
+            call_primal = node
+            cache_args = []
+            # backup
+            if node.call.id in func_to_rev:
+                rev_func = func_to_rev[node.call.id]
+                call_func = funcs[node.call.id]
+            else:
+                assert False, f'Cannot find {node.call.id} in func_to_rev'
+            for arg, real_arg in zip(node.call.args, call_func.args):
+                # print(arg, real_arg)
+                if real_arg.i == loma_ir.Out():
+                    cache_args.append(arg)
+            primal_advance = []
+            for arg in cache_args:
+                t_str = type_to_string(arg.t)
+                if t_str in self.type_to_stack_and_ptr_names:
+                    stack_name, stack_ptr_name = self.type_to_stack_and_ptr_names[t_str]
+                else:
+                    random_id = random_id_generator()
+                    stack_name = f'_t_{t_str}_{random_id}'
+                    stack_ptr_name = f'_stack_ptr_{t_str}_{random_id}'
+                    self.type_to_stack_and_ptr_names[t_str] = (stack_name, stack_ptr_name)
+                
+                stack_ptr_var = loma_ir.Var(stack_ptr_name, t=loma_ir.Int())
+                cache_var_expr = loma_ir.ArrayAccess(
+                    loma_ir.Var(stack_name),
+                    stack_ptr_var,
+                    t = arg.t)
+                if isinstance(arg.t, loma_ir.Array):
+                    continue
+                primal_advance.append(loma_ir.Assign(cache_var_expr, arg))
+                primal_advance.append(loma_ir.Assign(stack_ptr_var,
+                    loma_ir.BinaryOp(loma_ir.Add(), stack_ptr_var, loma_ir.ConstInt(1))))
+
+                if arg.t in self.cache_vars_list:
+                    self.cache_vars_list[arg.t].append((cache_var_expr, arg))
+                else:
+                    self.cache_vars_list[arg.t] = [(cache_var_expr, arg)]
+                if arg.t in self.type_cache_size:
+                    self.type_cache_size[arg.t] += 1
+                else:
+                    self.type_cache_size[arg.t] = 1
+            return [irmutator.flatten(primal_advance), call_primal]
+            # return super().mutate_call_stmt(node)
+            
 
     # HW2 happens here. Modify the following IR mutators to perform
     # reverse differentiation.
     class RevDiffMutator(irmutator.IRMutator):
         def mutate_function_def(self, node):
+            # print(node)
             random.seed(hash(node.id))
             # Each input argument is followed by an output (the adjoint)
             # Each output is turned into an input
             # The return value turn into an input
+            # normalize call
+            call_normalize = CallNormalizeMutator()
+            node = call_normalize.mutate_function_def(node)
+            # for stmt in node.body:
+            #     print(stmt)
+            # exit()
             self.var_to_dvar = {}
             new_args = []
             self.output_args = set()
@@ -337,6 +398,7 @@ def reverse_diff(diff_func_id : str,
             if node.ret_type is not None:
                 self.return_var_id = '_dreturn_' + random_id_generator()
                 new_args.append(loma_ir.Arg(self.return_var_id, node.ret_type, i = loma_ir.In()))
+                
 
             # Forward pass
             fm = ForwardPassMutator(self.output_args)
@@ -351,6 +413,8 @@ def reverse_diff(diff_func_id : str,
 
             tmp_declares = []
             for t, exprs in fm.cache_vars_list.items():
+                if isinstance(t, loma_ir.Array):
+                    continue
                 t_str = type_to_string(t)
                 stack_name, stack_ptr_name = self.type_to_stack_and_ptr_names[t_str]
                 tmp_declares.append(loma_ir.Declare(stack_name,
@@ -365,6 +429,7 @@ def reverse_diff(diff_func_id : str,
             self.adj_declaration = []
             reversed_body = [self.mutate_stmt(stmt) for stmt in reversed(node.body)]
             reversed_body = irmutator.flatten(reversed_body)
+            # print(mutated_forward + self.adj_declaration + reversed_body)
 
             return loma_ir.FunctionDef(\
                 diff_func_id,
@@ -442,7 +507,46 @@ def reverse_diff(diff_func_id : str,
 
         def mutate_call_stmt(self, node):
             # HW3: TODO
-            return super().mutate_call_stmt(node)
+            # return super().mutate_call_stmt(node)
+            new_args = []
+            out_args = []  # args that are assigned
+            stmts = []
+            if node.call.id in func_to_rev:
+                rev_func = func_to_rev[node.call.id]
+                call_func = funcs[node.call.id]
+            else:
+                assert False, f'Cannot find {node.call.id} in func_to_rev'
+            for arg, real_arg in zip(node.call.args, call_func.args):
+                # print(arg, real_arg)
+                if real_arg.i == loma_ir.In():
+                    new_args.append(arg)
+                    new_args.append(var_to_differential(arg, self.var_to_dvar))
+                else:
+                    new_args.append(var_to_differential(arg, self.var_to_dvar))
+                    out_args.append(arg)
+            # new_args.append(self.adj)
+            # print(f'new_args: {new_args}')
+            assign = []
+            for arg in out_args:  # same as assign
+                if isinstance(arg.t, loma_ir.Array):
+                    continue
+                t_str = type_to_string(arg.t)
+                _, stack_ptr_name = self.type_to_stack_and_ptr_names[t_str]
+                stack_ptr_var = loma_ir.Var(stack_ptr_name, t=loma_ir.Int())
+                stmts.append(loma_ir.Assign(stack_ptr_var,
+                    loma_ir.BinaryOp(loma_ir.Sub(), stack_ptr_var, loma_ir.ConstInt(1))))
+                cache_var_expr, cache_target = self.cache_vars_list[arg.t].pop()
+                stmts.append(loma_ir.Assign(cache_target, cache_var_expr))
+                assign.append(assign_zero(var_to_differential(arg, self.var_to_dvar)))
+            
+                
+            stmts.append(loma_ir.CallStmt(\
+                loma_ir.Call(rev_func, 
+                                new_args, 
+                            lineno = node.lineno,
+                            t = node.call.t)))
+            stmts.extend(assign)
+            return stmts
 
         def mutate_while(self, node):
             # HW3: TODO
@@ -685,6 +789,28 @@ def reverse_diff(diff_func_id : str,
                     return []
                 case _:
                     # HW3: TODO
-                    assert False
+                    # assert False
+                    # not have to consider the loma_ir.Out arg
+                    new_args = []
+                    if node.id in func_to_rev:
+                        rev_func = func_to_rev[node.id]
+                        call_func = funcs[node.id]
+                    else:
+                        assert False, f'Cannot find {node.id} in func_to_rev'
+                    for arg, real_arg in zip(node.args, call_func.args):
+                        # print(arg, real_arg)
+                        if real_arg.i == loma_ir.In():
+                            new_args.append(arg)
+                            new_args.append(var_to_differential(arg, self.var_to_dvar))
+                        else:
+                            new_args.append(arg)
+                    new_args.append(self.adj)
+                    # print(f'new_args: {new_args}')
+                    ret = loma_ir.CallStmt(\
+                        loma_ir.Call(rev_func, 
+                                     new_args, 
+                                    lineno = node.lineno,
+                                    t = node.t))
+                    return [ret]
 
     return RevDiffMutator().mutate_function_def(func)
