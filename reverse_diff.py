@@ -378,8 +378,8 @@ def reverse_diff(diff_func_id : str,
             # normalize call
             call_normalize = CallNormalizeMutator()
             node = call_normalize.mutate_function_def(node)
-            # for stmt in node.body:
-            #     print(stmt)
+            for stmt in node.body:
+                print(stmt)
             # exit()
             self.var_to_dvar = {}
             new_args = []
