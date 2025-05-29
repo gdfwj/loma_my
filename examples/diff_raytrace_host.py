@@ -18,5 +18,6 @@ if __name__ == '__main__':
     h = 225
     img = np.zeros([h, w, 3], dtype = np.single)
     lib.diff_raytrace(w, h, img.ctypes.data_as(ctypes.POINTER(structs['Vec3'])))
+    print(type(img))
     plt.imshow(img)
     plt.show()
